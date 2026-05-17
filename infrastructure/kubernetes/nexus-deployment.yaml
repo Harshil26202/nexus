@@ -1,0 +1,283 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nexus
+  labels:
+    app: nexus
+---
+# ─── Backend API Deployment ───────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nexus-backend
+  namespace: nexus
+  labels:
+    app: nexus-backend
+    version: "1.0.0"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nexus-backend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: nexus-backend
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: nexus-backend-sa
+      containers:
+        - name: backend
+          image: nexusprodacr.azurecr.io/nexus-backend:latest
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - secretRef:
+                name: nexus-backend-secrets
+            - configMapRef:
+                name: nexus-backend-config
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "2000m"
+              memory: "2Gi"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            failureThreshold: 3
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 10"]
+      terminationGracePeriodSeconds: 60
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nexus-backend-svc
+  namespace: nexus
+spec:
+  selector:
+    app: nexus-backend
+  ports:
+    - port: 80
+      targetPort: 8000
+  type: ClusterIP
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: nexus-backend-hpa
+  namespace: nexus
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: nexus-backend
+  minReplicas: 3
+  maxReplicas: 50
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 65
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 75
+---
+# ─── Agent Worker Deployment ──────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nexus-agent-worker
+  namespace: nexus
+  labels:
+    app: nexus-agent-worker
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: nexus-agent-worker
+  template:
+    metadata:
+      labels:
+        app: nexus-agent-worker
+    spec:
+      nodeSelector:
+        nexus/role: agent-worker
+      tolerations:
+        - key: "nexus/agent"
+          operator: "Equal"
+          value: "true"
+          effect: "NoSchedule"
+      containers:
+        - name: agent-worker
+          image: nexusprodacr.azurecr.io/nexus-backend:latest
+          command: ["python", "-m", "app.workers.agent_worker"]
+          envFrom:
+            - secretRef:
+                name: nexus-backend-secrets
+            - configMapRef:
+                name: nexus-backend-config
+          resources:
+            requests:
+              cpu: "1000m"
+              memory: "1Gi"
+            limits:
+              cpu: "4000m"
+              memory: "4Gi"
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: nexus-agent-worker-hpa
+  namespace: nexus
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: nexus-agent-worker
+  minReplicas: 4
+  maxReplicas: 100
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+---
+# ─── Frontend Deployment ──────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nexus-frontend
+  namespace: nexus
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nexus-frontend
+  template:
+    metadata:
+      labels:
+        app: nexus-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: nexusprodacr.azurecr.io/nexus-frontend:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: NEXT_PUBLIC_API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: nexus-frontend-config
+                  key: API_URL
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nexus-frontend-svc
+  namespace: nexus
+spec:
+  selector:
+    app: nexus-frontend
+  ports:
+    - port: 80
+      targetPort: 3000
+  type: ClusterIP
+---
+# ─── Ingress ──────────────────────────────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nexus-ingress
+  namespace: nexus
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-buffering: "on"
+spec:
+  tls:
+    - hosts:
+        - nexus.yourdomain.com
+        - api.nexus.yourdomain.com
+      secretName: nexus-tls
+  rules:
+    - host: nexus.yourdomain.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nexus-frontend-svc
+                port:
+                  number: 80
+    - host: api.nexus.yourdomain.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nexus-backend-svc
+                port:
+                  number: 80
+---
+# ─── Pod Disruption Budgets ───────────────────────────────────────────────────
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: nexus-backend-pdb
+  namespace: nexus
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: nexus-backend
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: nexus-agent-worker-pdb
+  namespace: nexus
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: nexus-agent-worker

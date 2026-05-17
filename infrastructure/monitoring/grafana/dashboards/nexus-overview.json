@@ -1,0 +1,58 @@
+{
+  "id": null,
+  "uid": "nexus-overview",
+  "title": "NEXUS — Platform Overview",
+  "tags": ["nexus", "platform"],
+  "timezone": "browser",
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "panels": [
+    {
+      "id": 1, "type": "stat",
+      "title": "Pipeline Success Rate",
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+      "targets": [{"expr": "sum(rate(http_requests_total{handler='/api/v1/pipelines',status=~'2..'}[5m])) / sum(rate(http_requests_total{handler='/api/v1/pipelines'}[5m])) * 100", "datasource": "Prometheus"}],
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "background", "graphMode": "area"},
+      "fieldConfig": {"defaults": {"unit": "percent", "thresholds": {"steps": [{"color": "red", "value": 0}, {"color": "yellow", "value": 70}, {"color": "green", "value": 90}]}}}
+    },
+    {
+      "id": 2, "type": "stat",
+      "title": "Active Agent Tasks",
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+      "targets": [{"expr": "nexus_agent_tasks_active_total", "datasource": "Prometheus"}],
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "background"},
+      "fieldConfig": {"defaults": {"unit": "short", "thresholds": {"steps": [{"color": "green", "value": 0}, {"color": "yellow", "value": 20}, {"color": "red", "value": 50}]}}}
+    },
+    {
+      "id": 3, "type": "stat",
+      "title": "P95 API Latency",
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+      "targets": [{"expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) * 1000", "datasource": "Prometheus"}],
+      "fieldConfig": {"defaults": {"unit": "ms", "thresholds": {"steps": [{"color": "green", "value": 0}, {"color": "yellow", "value": 500}, {"color": "red", "value": 2000}]}}}
+    },
+    {
+      "id": 4, "type": "stat",
+      "title": "Open Incidents",
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+      "targets": [{"expr": "nexus_incidents_open_total", "datasource": "Prometheus"}],
+      "fieldConfig": {"defaults": {"unit": "short", "thresholds": {"steps": [{"color": "green", "value": 0}, {"color": "yellow", "value": 3}, {"color": "red", "value": 5}]}}}
+    },
+    {
+      "id": 5, "type": "timeseries",
+      "title": "Request Rate by Endpoint",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+      "targets": [{"expr": "sum(rate(http_requests_total[1m])) by (handler)", "legendFormat": "{{handler}}", "datasource": "Prometheus"}],
+      "fieldConfig": {"defaults": {"unit": "reqps"}}
+    },
+    {
+      "id": 6, "type": "timeseries",
+      "title": "Agent Task Duration (p50/p95/p99)",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+      "targets": [
+        {"expr": "histogram_quantile(0.50, sum(rate(nexus_agent_duration_ms_bucket[5m])) by (le, agent))", "legendFormat": "p50 {{agent}}", "datasource": "Prometheus"},
+        {"expr": "histogram_quantile(0.95, sum(rate(nexus_agent_duration_ms_bucket[5m])) by (le, agent))", "legendFormat": "p95 {{agent}}", "datasource": "Prometheus"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "ms"}}
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    timeout: 10s
+    send_batch_size: 1024
+
+  memory_limiter:
+    limit_mib: 512
+    spike_limit_mib: 128
+    check_interval: 5s
+
+  resourcedetection:
+    detectors: [env, system]
+    timeout: 5s
+
+  attributes:
+    actions:
+      - key: deployment.environment
+        value: ${ENVIRONMENT:-development}
+        action: insert
+
+exporters:
+  otlp:
+    endpoint: "otelcol:4317"
+    tls:
+      insecure: true
+
+  prometheus:
+    endpoint: "0.0.0.0:8888"
+    namespace: nexus
+
+  logging:
+    verbosity: normal
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+  pprof:
+    endpoint: 0.0.0.0:1888
+  zpages:
+    endpoint: 0.0.0.0:55679
+
+service:
+  extensions: [health_check, pprof, zpages]
+  pipelines:
+    traces:
+      receivers:  [otlp]
+      processors: [memory_limiter, resourcedetection, attributes, batch]
+      exporters:  [otlp, logging]
+    metrics:
+      receivers:  [otlp]
+      processors: [memory_limiter, batch]
+      exporters:  [prometheus]
+    logs:
+      receivers:  [otlp]
+      processors: [memory_limiter, batch]
+      exporters:  [logging]

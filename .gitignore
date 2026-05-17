@@ -1,0 +1,69 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.env
+.env.local
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage.xml
+*.log
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+.turbo/
+.vercel/
+.netlify/
+*.tsbuildinfo
+next-env.d.ts
+
+# Terraform
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.backup
+terraform.tfvars
+*.tfplan
+crash.log
+
+# Docker
+.dockerignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ML artifacts
+ml/**/*.pkl
+ml/**/*.joblib
+ml/**/*.model
+ml/**/*.bin
+ml/**/data/
+ml/**/datasets/
+
+# Secrets
+*.pem
+*.key
+*.crt
+kubeconfig
+.kube/
+
+# Alembic
+backend/alembic/versions/__pycache__/

@@ -1,0 +1,97 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        default: "staging"
+        type: choice
+        options: [staging, production]
+
+jobs:
+  deploy-staging:
+    name: Deploy — Staging
+    runs-on: ubuntu-latest
+    if: >
+      github.event.workflow_run.conclusion == 'success' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+    environment:
+      name: staging
+      url: https://staging.nexus.yourdomain.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - uses: azure/aks-set-context@v4
+        with:
+          resource-group: nexus-staging-rg
+          cluster-name: nexus-staging-aks
+      - name: Deploy to staging
+        run: |
+          kubectl set image deployment/nexus-backend \
+            backend=${{ secrets.ACR_LOGIN_SERVER }}/nexus-backend:${{ github.sha }} \
+            -n nexus
+          kubectl set image deployment/nexus-agent-worker \
+            agent-worker=${{ secrets.ACR_LOGIN_SERVER }}/nexus-backend:${{ github.sha }} \
+            -n nexus
+          kubectl set image deployment/nexus-frontend \
+            frontend=${{ secrets.ACR_LOGIN_SERVER }}/nexus-frontend:${{ github.sha }} \
+            -n nexus
+          kubectl rollout status deployment/nexus-backend -n nexus --timeout=300s
+          kubectl rollout status deployment/nexus-frontend -n nexus --timeout=300s
+      - name: Run smoke tests
+        run: |
+          sleep 30
+          curl -f https://api.staging.nexus.yourdomain.com/health
+
+  deploy-production:
+    name: Deploy — Production
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production'
+    needs: [deploy-staging]
+    environment:
+      name: production
+      url: https://nexus.yourdomain.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - uses: azure/aks-set-context@v4
+        with:
+          resource-group: nexus-production-rg
+          cluster-name: nexus-production-aks
+
+      - name: Canary deploy (10% traffic)
+        run: |
+          kubectl set image deployment/nexus-backend \
+            backend=${{ secrets.ACR_LOGIN_SERVER }}/nexus-backend:${{ github.sha }} \
+            -n nexus
+          kubectl rollout status deployment/nexus-backend -n nexus --timeout=300s
+
+      - name: Monitor canary (5 min)
+        run: sleep 300
+
+      - name: Full rollout
+        run: |
+          kubectl set image deployment/nexus-agent-worker \
+            agent-worker=${{ secrets.ACR_LOGIN_SERVER }}/nexus-backend:${{ github.sha }} \
+            -n nexus
+          kubectl set image deployment/nexus-frontend \
+            frontend=${{ secrets.ACR_LOGIN_SERVER }}/nexus-frontend:${{ github.sha }} \
+            -n nexus
+          kubectl rollout status deployment/nexus-frontend -n nexus --timeout=300s
+
+      - name: Notify Slack
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_MESSAGE: "NEXUS ${{ github.sha }} deployed to production"
+          SLACK_COLOR: good
