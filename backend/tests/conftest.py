@@ -66,8 +66,8 @@ async def client(db_session) -> AsyncIterator[AsyncClient]:
 
 @pytest.fixture
 def mock_openai():
-    """Mock Azure OpenAI responses for agent tests."""
-    with patch("app.core.azure_clients.get_openai_client") as mock:
+    """Mock OpenAI client for agent tests — patch where it's used, not where it's defined."""
+    with patch("app.agents.base.get_openai_client") as mock:
         client = AsyncMock()
         mock.return_value = client
 

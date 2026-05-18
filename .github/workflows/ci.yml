@@ -9,7 +9,7 @@ on:
 env:
   REGISTRY: ${{ secrets.ACR_LOGIN_SERVER }}
   PYTHON_VERSION: "3.11"
-  NODE_VERSION: "20"
+  NODE_VERSION: "22"
 
 jobs:
   # ─── Backend ────────────────────────────────────────────────────────────────
@@ -25,6 +25,7 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
+          cache-dependency-path: backend/requirements.txt
       - run: pip install ruff mypy
       - run: ruff check app/
       - run: mypy app/ --ignore-missing-imports
@@ -57,18 +58,19 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
+          cache-dependency-path: backend/requirements.txt
       - run: pip install -r requirements.txt
       - name: Run tests
         run: pytest tests/ -v --tb=short --cov=app --cov-report=xml
         env:
           DATABASE_URL: postgresql+asyncpg://nexus:nexus_test@localhost:5432/nexus_test
           REDIS_URL: redis://localhost:6379/0
-          AZURE_OPENAI_API_KEY: "test"
-          AZURE_OPENAI_ENDPOINT: "https://test.openai.azure.com/"
+          OPENAI_API_KEY: "test-key-not-used-mocked-in-tests"
           JWT_SECRET: test_secret
       - uses: codecov/codecov-action@v4
         with:
           file: backend/coverage.xml
+        continue-on-error: true
 
   # ─── Frontend ────────────────────────────────────────────────────────────────
   frontend-lint:
@@ -82,9 +84,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
+      - run: npm install
       - run: npm run lint
       - run: npx tsc --noEmit
 
@@ -99,20 +99,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
+      - run: npm install
       - run: npm run build
         env:
-          NEXT_PUBLIC_API_URL: https://api.nexus.yourdomain.com
-          NEXT_PUBLIC_WS_URL: wss://api.nexus.yourdomain.com
-          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-          NEXTAUTH_URL: https://nexus.yourdomain.com
+          NEXT_PUBLIC_API_URL: http://localhost:8000
+          NEXT_PUBLIC_WS_URL: ws://localhost:8000
+          NEXTAUTH_SECRET: ci_build_secret
+          NEXTAUTH_URL: http://localhost:3000
 
   # ─── Security Scan ───────────────────────────────────────────────────────────
   security-scan:
     name: Security — Trivy Scan
     runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - name: Build backend image
@@ -124,16 +125,17 @@ jobs:
           format: sarif
           output: trivy-results.sarif
           severity: CRITICAL,HIGH
-      - uses: github/codeql-action/upload-sarif@v3
+      - uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-results.sarif
+        continue-on-error: true
 
   # ─── Docker Build & Push ─────────────────────────────────────────────────────
   docker-build:
     name: Docker — Build & Push
     runs-on: ubuntu-latest
     needs: [backend-test, frontend-build, security-scan]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.ACR_ENABLED == 'true'
     steps:
       - uses: actions/checkout@v4
       - uses: azure/docker-login@v2

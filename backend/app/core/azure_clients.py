@@ -1,6 +1,7 @@
 """Singleton Azure SDK client factory."""
 from functools import lru_cache
 
+from azure.core.credentials import AzureKeyCredential
 from azure.identity import DefaultAzureCredential
 from azure.search.documents.aio import SearchClient
 from azure.servicebus.aio import ServiceBusClient
@@ -27,8 +28,7 @@ def get_search_client(index: str) -> SearchClient:
     return SearchClient(
         endpoint=settings.AZURE_AI_SEARCH_ENDPOINT,
         index_name=index,
-        credential=DefaultAzureCredential() if settings.is_production
-        else __import__("azure.core.credentials", fromlist=["AzureKeyCredential"]).AzureKeyCredential(
+        credential=DefaultAzureCredential() if settings.is_production else AzureKeyCredential(
             settings.AZURE_AI_SEARCH_KEY
         ),
     )
