@@ -46,7 +46,7 @@ function AgentCard({ agent }: { agent: any }) {
       {/* Stats */}
       <div className="grid grid-cols-2 gap-2">
         <div className="bg-secondary rounded-lg p-2 text-center">
-          <p className="text-xs text-muted-foreground">Today's calls</p>
+          <p className="text-xs text-muted-foreground">Today&apos;s calls</p>
           <p className="font-bold text-sm">{agent.calls_today ?? "--"}</p>
         </div>
         <div className="bg-secondary rounded-lg p-2 text-center">
