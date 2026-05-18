@@ -54,10 +54,10 @@ export function LivePipelineStream() {
               <span className="text-muted-foreground ml-2">
                 {evt.pipeline_id?.slice(0, 8)}
               </span>
-              {evt.data?.stage && (
+              {!!evt.data?.stage && (
                 <span className="text-muted-foreground ml-1">· {evt.data.stage as string}</span>
               )}
-              {evt.data?.risk_level && (
+              {!!evt.data?.risk_level && (
                 <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-secondary">
                   {evt.data.risk_level as string}
                 </span>
