@@ -1,12 +1,10 @@
 """Base agent class with shared Azure AI Foundry integration, tracing, and retry logic."""
 import time
-import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any
 
 import structlog
-from opentelemetry import trace
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from app.core.azure_clients import get_openai_client

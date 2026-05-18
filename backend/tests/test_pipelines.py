@@ -13,7 +13,7 @@ async def test_list_pipelines_empty(client):
 
 @pytest.mark.asyncio
 async def test_trigger_pipeline(client):
-    with patch("app.routers.pipelines.orchestrator") as mock_orch:
+    with patch("app.agents.orchestrator.orchestrator") as mock_orch:
         mock_orch.run_pipeline = AsyncMock(return_value={
             "pipeline_id": str(uuid.uuid4()),
             "can_deploy": True,
@@ -102,7 +102,7 @@ async def test_quality_gates_crud(client):
 
 @pytest.mark.asyncio
 async def test_create_incident(client):
-    with patch("app.routers.incidents.orchestrator") as mock_orch:
+    with patch("app.agents.orchestrator.orchestrator") as mock_orch:
         mock_orch.run_incident = AsyncMock(return_value={
             "severity": "sev2",
             "root_cause_commit": None,
@@ -119,13 +119,13 @@ async def test_create_incident(client):
 
 @pytest.mark.asyncio
 async def test_github_webhook_ping(client):
-    resp = await client.post(
-        "/api/v1/webhooks/github",
-        json={"zen": "Speak like a human."},
-        headers={
-            "X-GitHub-Event": "ping",
-            "X-Hub-Signature-256": "sha256=invalid",
-        },
-    )
-    # Signature check passes because GITHUB_WEBHOOK_SECRET is empty in test env
+    with patch("app.routers.webhooks._verify_github_sig", return_value=True):
+        resp = await client.post(
+            "/api/v1/webhooks/github",
+            json={"zen": "Speak like a human."},
+            headers={
+                "X-GitHub-Event": "ping",
+                "X-Hub-Signature-256": "sha256=invalid",
+            },
+        )
     assert resp.status_code in (200, 202)

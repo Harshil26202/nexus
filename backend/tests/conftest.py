@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.pool import StaticPool
 
 from app.core.database import Base, get_db
+from app.core.redis_client import redis_pool
 from main import app
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
@@ -51,11 +52,11 @@ async def client(db_session) -> AsyncIterator[AsyncClient]:
 
     app.dependency_overrides[get_db] = override_get_db
 
-    with patch("app.core.redis_client.redis_pool") as mock_redis:
-        mock_redis.get = AsyncMock(return_value=None)
-        mock_redis.set = AsyncMock()
-        mock_redis.publish = AsyncMock()
-
+    with patch.object(redis_pool, "get", AsyncMock(return_value=None)), \
+         patch.object(redis_pool, "set", AsyncMock()), \
+         patch.object(redis_pool, "publish", AsyncMock()), \
+         patch.object(redis_pool, "delete", AsyncMock()), \
+         patch.object(redis_pool, "invalidate_prefix", AsyncMock()):
         async with AsyncClient(
             transport=ASGITransport(app=app), base_url="http://test"
         ) as ac:

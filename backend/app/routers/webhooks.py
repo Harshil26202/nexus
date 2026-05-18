@@ -16,7 +16,6 @@ import uuid
 
 import structlog
 from fastapi import APIRouter, BackgroundTasks, Header, HTTPException, Request, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.orchestrator import orchestrator
 from app.core.config import settings
@@ -160,12 +159,12 @@ def _build_pr_comment(result: dict, pipeline_id: str) -> str:
 
     lines = [
         f"## {status_emoji} NEXUS AI Analysis",
-        f"",
+        "",
         f"**Risk Score:** {score:.0f}/100 &nbsp;·&nbsp; **Level:** `{risk}`",
-        f"",
-        f"### Summary",
+        "",
+        "### Summary",
         semantic.get("summary", "_Not available_"),
-        f"",
+        "",
     ]
 
     blast = semantic.get("blast_radius", {})
@@ -190,10 +189,10 @@ def _build_pr_comment(result: dict, pipeline_id: str) -> str:
     skipped = len(test_intel.get("skip", []))
     lines += [
         "",
-        f"### Test Intelligence",
+        "### Test Intelligence",
         f"Running **{must_run}** tests, skipping **{skipped}** · **{saved}% CI time saved**",
         "",
-        f"---",
+        "---",
         f"_[View full analysis](https://nexus.yourdomain.com/pipelines/{pipeline_id}) · Powered by NEXUS AI_",
     ]
     return "\n".join(lines)

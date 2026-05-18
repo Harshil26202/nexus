@@ -10,18 +10,15 @@ Runs as a separate process (separate Docker container in prod).
 import asyncio
 import json
 import signal
-import sys
 
 import structlog
 from azure.servicebus.aio import ServiceBusClient
-from azure.servicebus import ServiceBusMessage
 
 from app.agents.orchestrator import orchestrator
 from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.core.telemetry import setup_telemetry
 from app.models.pipeline import Pipeline, PipelineStatus
-from app.models.incident import Incident, IncidentStatus
 
 log = structlog.get_logger()
 _shutdown = asyncio.Event()
@@ -71,8 +68,9 @@ async def _process_pipeline_message(body: dict) -> None:
         log.error("worker.pipeline_task_failed", error=str(exc), pipeline_id=pipeline_id)
         if pipeline_id:
             async with AsyncSessionLocal() as session:
-                from sqlalchemy import select
                 import uuid
+
+                from sqlalchemy import select
                 res = await session.execute(select(Pipeline).where(
                     Pipeline.id == uuid.UUID(pipeline_id)
                 ))

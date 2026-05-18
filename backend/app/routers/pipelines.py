@@ -1,9 +1,8 @@
 import uuid
-from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
-from sqlalchemy import select, desc
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -88,8 +87,9 @@ async def trigger_pipeline(
     body: TriggerPipelineRequest,
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    from app.agents.orchestrator import orchestrator
     import asyncio
+
+    from app.agents.orchestrator import orchestrator
 
     pipeline = Pipeline(
         repo_full_name=body.repo,

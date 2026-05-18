@@ -7,7 +7,6 @@ Coordinates the full NEXUS pipeline for every incoming event:
 
 Publishes real-time progress events to Redis pub/sub for WebSocket delivery.
 """
-import asyncio
 import time
 import uuid
 from typing import Any

@@ -12,7 +12,6 @@ from typing import Any
 
 from app.agents.base import AgentMessage, AgentResult, BaseAgent
 
-
 SYSTEM = """
 You are NEXUS Semantic Analyzer, a senior principal engineer AI.
 Your job is to deeply understand git diffs and produce structured intelligence.

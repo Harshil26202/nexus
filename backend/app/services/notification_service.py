@@ -1,5 +1,4 @@
 """Multi-channel notification service: Slack, Teams, PagerDuty."""
-import json
 
 import httpx
 import structlog

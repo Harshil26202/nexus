@@ -1,10 +1,7 @@
 """GitHub API service — fetches diffs, posts statuses, creates issues."""
-import base64
 
 import httpx
 import structlog
-
-from app.core.config import settings
 
 log = structlog.get_logger()
 

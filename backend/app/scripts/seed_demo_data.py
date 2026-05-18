@@ -1,7 +1,6 @@
 """Seed rich demo data so the dashboard looks impressive on first launch."""
 import asyncio
 import random
-import uuid
 from datetime import datetime, timedelta, timezone
 
 import structlog
@@ -9,7 +8,7 @@ import structlog
 from app.core.database import AsyncSessionLocal, Base, engine
 from app.models.agent_task import AgentTask, AgentTaskStatus, AgentType
 from app.models.incident import Incident, IncidentSeverity, IncidentStatus
-from app.models.pipeline import Pipeline, PipelineRun, PipelineStatus, RiskLevel
+from app.models.pipeline import Pipeline, PipelineStatus, RiskLevel
 from app.models.quality_gate import GateType, QualityGate
 
 log = structlog.get_logger()
