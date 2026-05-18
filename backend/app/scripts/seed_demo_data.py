@@ -233,11 +233,9 @@ async def seed_incidents(session) -> None:
             root_cause_analysis=d.get("root_cause_analysis"),
             postmortem_draft=d.get("postmortem_draft"),
             suggested_fix=d.get("suggested_fix"),
-            slack_summary=d.get("slack_summary"),
             affected_services=d.get("affected_services", []),
             mttr_seconds=d.get("mttr_seconds"),
             resolved_at=d.get("resolved_at"),
-            created_at=now - timedelta(hours=random.randint(1, 48)),
         )
         session.add(inc)
 

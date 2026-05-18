@@ -5,7 +5,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # ─── Development Stage ────────────────────────────────────────────────────────
 FROM base AS development
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 COPY . .
 EXPOSE 3000
 CMD ["npm", "run", "dev"]
@@ -13,7 +13,7 @@ CMD ["npm", "run", "dev"]
 # ─── Builder Stage ────────────────────────────────────────────────────────────
 FROM base AS builder
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 COPY . .
 RUN npm run build
 

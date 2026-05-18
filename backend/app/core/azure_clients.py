@@ -1,22 +1,25 @@
 """Singleton Azure SDK client factory."""
 from functools import lru_cache
 
-from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
+from azure.identity import DefaultAzureCredential
 from azure.search.documents.aio import SearchClient
 from azure.servicebus.aio import ServiceBusClient
 from azure.storage.blob.aio import BlobServiceClient
-from openai import AsyncAzureOpenAI
+from openai import AsyncAzureOpenAI, AsyncOpenAI
 
 from app.core.config import settings
 
 
 @lru_cache
-def get_openai_client() -> AsyncAzureOpenAI:
-    return AsyncAzureOpenAI(
-        azure_endpoint=settings.AZURE_OPENAI_ENDPOINT,
-        api_key=settings.AZURE_OPENAI_API_KEY,
-        api_version=settings.AZURE_OPENAI_API_VERSION,
-    )
+def get_openai_client() -> AsyncOpenAI:
+    """Return Azure OpenAI client when credentials are present, otherwise standard OpenAI."""
+    if settings.use_azure_openai:
+        return AsyncAzureOpenAI(
+            azure_endpoint=settings.AZURE_OPENAI_ENDPOINT,
+            api_key=settings.AZURE_OPENAI_API_KEY,
+            api_version=settings.AZURE_OPENAI_API_VERSION,
+        )
+    return AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
 
 
 @lru_cache

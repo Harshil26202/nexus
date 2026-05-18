@@ -18,20 +18,31 @@ class Settings(BaseSettings):
 
     # ─── Redis ────────────────────────────────────────────────────────────────
     REDIS_URL: str = "redis://localhost:6379/0"
-    REDIS_POOL_SIZE: int = 20
+    REDIS_POOL_SIZE: int = 100
 
     # ─── JWT ──────────────────────────────────────────────────────────────────
     JWT_SECRET: str = "change_me"
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_MINUTES: int = 60 * 24
 
-    # ─── Azure AI Foundry ─────────────────────────────────────────────────────
+    # ─── OpenAI (primary — works out of the box with an API key) ─────────────
+    OPENAI_API_KEY: str = ""
+    OPENAI_MODEL: str = "gpt-4o"
+    OPENAI_MINI_MODEL: str = "gpt-4o-mini"
+    OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-large"
+
+    # ─── Azure OpenAI (optional — overrides standard OpenAI when both are set)
     AZURE_OPENAI_ENDPOINT: str = ""
     AZURE_OPENAI_API_KEY: str = ""
     AZURE_OPENAI_API_VERSION: str = "2024-08-01-preview"
     AZURE_OPENAI_DEPLOYMENT: str = "gpt-4o"
     AZURE_OPENAI_MINI_DEPLOYMENT: str = "gpt-4o-mini"
     AZURE_OPENAI_EMBEDDING_DEPLOYMENT: str = "text-embedding-3-large"
+
+    @computed_field
+    @property
+    def use_azure_openai(self) -> bool:
+        return bool(self.AZURE_OPENAI_ENDPOINT and self.AZURE_OPENAI_API_KEY)
 
     # ─── Azure AI Search ──────────────────────────────────────────────────────
     AZURE_AI_SEARCH_ENDPOINT: str = ""

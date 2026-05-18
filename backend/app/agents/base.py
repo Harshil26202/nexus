@@ -38,7 +38,7 @@ class AgentResult:
 
 class BaseAgent(ABC):
     name: str = "base"
-    model: str = settings.AZURE_OPENAI_DEPLOYMENT
+    model: str = settings.OPENAI_MODEL
     temperature: float = 0.1
     max_tokens: int = 4096
 

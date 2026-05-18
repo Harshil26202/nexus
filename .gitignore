@@ -39,8 +39,6 @@ terraform.tfvars
 *.tfplan
 crash.log
 
-# Docker
-.dockerignore
 
 # IDE
 .vscode/

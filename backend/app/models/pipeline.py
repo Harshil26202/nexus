@@ -66,6 +66,6 @@ class PipelineRun(Base):
     log_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     duration_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
     agent_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    metadata: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    step_metadata: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     pipeline: Mapped["Pipeline"] = relationship(back_populates="runs")
