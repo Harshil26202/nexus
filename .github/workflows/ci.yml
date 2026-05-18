@@ -28,7 +28,7 @@ jobs:
           cache-dependency-path: backend/requirements.txt
       - run: pip install ruff mypy
       - run: ruff check app/
-      - run: mypy app/ --ignore-missing-imports
+      - run: mypy app/
 
   backend-test:
     name: Backend — Unit & Integration Tests

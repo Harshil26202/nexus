@@ -71,7 +71,7 @@ export default function PipelineDetailPage() {
   const { data: pipeline, isLoading } = useQuery({
     queryKey: ["pipeline", id],
     queryFn: () => api.get(`/pipelines/${id}`).then(r => r.data),
-    refetchInterval: p => (p?.status === "running" ? 3000 : false),
+    refetchInterval: (query) => (query.state.data?.status === "running" ? 3000 : false),
   });
 
   const { data: analysis } = useQuery({

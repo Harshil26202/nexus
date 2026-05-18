@@ -102,7 +102,17 @@ async def test_quality_gates_crud(client):
 
 @pytest.mark.asyncio
 async def test_create_incident(client):
-    with patch("app.agents.orchestrator.orchestrator") as mock_orch:
+    from unittest.mock import MagicMock
+    mock_session = AsyncMock()
+    mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+    mock_session.__aexit__ = AsyncMock(return_value=False)
+    mock_session.execute = AsyncMock(
+        return_value=MagicMock(scalar_one=MagicMock(return_value=MagicMock()))
+    )
+    mock_session.commit = AsyncMock()
+
+    with patch("app.agents.orchestrator.orchestrator") as mock_orch, \
+         patch("app.core.database.AsyncSessionLocal", return_value=mock_session):
         mock_orch.run_incident = AsyncMock(return_value={
             "severity": "sev2",
             "root_cause_commit": None,

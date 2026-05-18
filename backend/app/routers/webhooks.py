@@ -215,7 +215,7 @@ async def github_webhook(
     except json.JSONDecodeError as exc:
         raise HTTPException(status_code=400, detail="Invalid JSON") from exc
 
-    log.info("webhook.github_received", event=x_github_event)
+    log.info("webhook.github_received", github_event=x_github_event)
 
     if x_github_event == "ping":
         return {"message": "pong", "zen": payload.get("zen")}
